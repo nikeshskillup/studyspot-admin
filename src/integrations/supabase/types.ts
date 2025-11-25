@@ -14,7 +14,192 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          next_due_date: string | null
+          notes: string | null
+          payment_date: string | null
+          payment_method: string | null
+          student_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          next_due_date?: string | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          student_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          next_due_date?: string | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seat_history: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          id: string
+          new_seat: string | null
+          old_seat: string | null
+          student_id: string | null
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          new_seat?: string | null
+          old_seat?: string | null
+          student_id?: string | null
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          new_seat?: string | null
+          old_seat?: string | null
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seat_history_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seats: {
+        Row: {
+          created_at: string | null
+          id: string
+          seat_number: string
+          status: string | null
+          student_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          seat_number: string
+          status?: string | null
+          student_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          seat_number?: string
+          status?: string | null
+          student_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seats_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settings: {
+        Row: {
+          created_at: string | null
+          default_monthly_fee: number | null
+          id: string
+          total_seats: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_monthly_fee?: number | null
+          id?: string
+          total_seats?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_monthly_fee?: number | null
+          id?: string
+          total_seats?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      students: {
+        Row: {
+          created_at: string | null
+          discount_amount: number | null
+          email: string | null
+          fee_due_date: string | null
+          id: string
+          monthly_fee: number | null
+          phone: string
+          photo_url: string | null
+          qr_url: string | null
+          registration_date: string | null
+          seat_number: string | null
+          student_name: string
+          subscription_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          discount_amount?: number | null
+          email?: string | null
+          fee_due_date?: string | null
+          id?: string
+          monthly_fee?: number | null
+          phone: string
+          photo_url?: string | null
+          qr_url?: string | null
+          registration_date?: string | null
+          seat_number?: string | null
+          student_name: string
+          subscription_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          discount_amount?: number | null
+          email?: string | null
+          fee_due_date?: string | null
+          id?: string
+          monthly_fee?: number | null
+          phone?: string
+          photo_url?: string | null
+          qr_url?: string | null
+          registration_date?: string | null
+          seat_number?: string | null
+          student_name?: string
+          subscription_status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
