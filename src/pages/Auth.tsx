@@ -18,7 +18,7 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -27,7 +27,9 @@ const Auth = () => {
       toast.error(error.message);
     } else {
       toast.success("Logged in successfully");
-      navigate("/dashboard");
+      if (data.session) {
+        navigate("/dashboard");
+      }
     }
     setLoading(false);
   };
