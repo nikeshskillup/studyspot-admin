@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,8 +11,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+
+interface Seat {
+  id: string;
+  seat_number: string;
+  status: string;
+}
 
 interface AddStudentDialogProps {
   onStudentAdded: () => void;
@@ -21,41 +28,85 @@ interface AddStudentDialogProps {
 const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [availableSeats, setAvailableSeats] = useState<Seat[]>([]);
   const [formData, setFormData] = useState({
     student_name: "",
     phone: "",
     email: "",
     monthly_fee: "",
     discount_amount: "0",
+    seat_id: "",
   });
+
+  useEffect(() => {
+    if (open) {
+      fetchAvailableSeats();
+    }
+  }, [open]);
+
+  const fetchAvailableSeats = async () => {
+    const { data, error } = await supabase
+      .from("seats")
+      .select("*")
+      .eq("status", "available")
+      .order("seat_number", { ascending: true });
+
+    if (!error && data) {
+      setAvailableSeats(data);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.from("students").insert({
-      student_name: formData.student_name,
-      phone: formData.phone,
-      email: formData.email || null,
-      monthly_fee: parseFloat(formData.monthly_fee),
-      discount_amount: parseFloat(formData.discount_amount),
-      subscription_status: "active",
-    });
+    const selectedSeat = availableSeats.find(s => s.id === formData.seat_id);
+    
+    const { data: studentData, error: studentError } = await supabase
+      .from("students")
+      .insert({
+        student_name: formData.student_name,
+        phone: formData.phone,
+        email: formData.email || null,
+        monthly_fee: parseFloat(formData.monthly_fee),
+        discount_amount: parseFloat(formData.discount_amount),
+        subscription_status: "active",
+        seat_number: selectedSeat?.seat_number || null,
+      })
+      .select()
+      .single();
 
-    if (error) {
-      toast.error("Failed to add student: " + error.message);
-    } else {
-      toast.success("Student added successfully!");
-      setFormData({
-        student_name: "",
-        phone: "",
-        email: "",
-        monthly_fee: "",
-        discount_amount: "0",
-      });
-      setOpen(false);
-      onStudentAdded();
+    if (studentError) {
+      toast.error("Failed to add student: " + studentError.message);
+      setLoading(false);
+      return;
     }
+
+    if (formData.seat_id && studentData) {
+      const { error: seatError } = await supabase
+        .from("seats")
+        .update({
+          status: "occupied",
+          student_id: studentData.id,
+        })
+        .eq("id", formData.seat_id);
+
+      if (seatError) {
+        toast.error("Student added but seat assignment failed");
+      }
+    }
+
+    toast.success("Student added successfully!");
+    setFormData({
+      student_name: "",
+      phone: "",
+      email: "",
+      monthly_fee: "",
+      discount_amount: "0",
+      seat_id: "",
+    });
+    setOpen(false);
+    onStudentAdded();
     setLoading(false);
   };
 
@@ -142,6 +193,26 @@ const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
                 }
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="seat">Seat Assignment (Optional)</Label>
+            <Select
+              value={formData.seat_id}
+              onValueChange={(value) =>
+                setFormData({ ...formData, seat_id: value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a seat" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableSeats.map((seat) => (
+                  <SelectItem key={seat.id} value={seat.id}>
+                    Seat {seat.seat_number}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <Button
