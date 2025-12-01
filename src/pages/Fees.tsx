@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import RecordPaymentDialog from "@/components/RecordPaymentDialog";
 import {
   Table,
   TableBody,
@@ -96,6 +97,7 @@ const Fees = () => {
               Track and manage student payments
             </p>
           </div>
+          <RecordPaymentDialog onPaymentAdded={fetchPayments} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
