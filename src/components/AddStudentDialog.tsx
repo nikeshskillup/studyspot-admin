@@ -44,6 +44,30 @@ const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
     }
   }, [open]);
 
+  useEffect(() => {
+    // Subscribe to realtime updates for seats
+    const channel = supabase
+      .channel('available-seats-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'seats'
+        },
+        () => {
+          if (open) {
+            fetchAvailableSeats();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [open]);
+
   const fetchAvailableSeats = async () => {
     const { data, error } = await supabase
       .from("seats")

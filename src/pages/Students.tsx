@@ -33,6 +33,26 @@ const Students = () => {
 
   useEffect(() => {
     fetchStudents();
+
+    // Subscribe to realtime updates for students
+    const channel = supabase
+      .channel('students-list-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'students'
+        },
+        () => {
+          fetchStudents();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchStudents = async () => {

@@ -27,6 +27,43 @@ const Seats = () => {
   useEffect(() => {
     fetchSeats();
     fetchStudents();
+
+    // Subscribe to realtime updates for seats
+    const seatsChannel = supabase
+      .channel('seats-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'seats'
+        },
+        () => {
+          fetchSeats();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to realtime updates for students
+    const studentsChannel = supabase
+      .channel('students-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'students'
+        },
+        () => {
+          fetchStudents();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(seatsChannel);
+      supabase.removeChannel(studentsChannel);
+    };
   }, []);
 
   const fetchSeats = async () => {
