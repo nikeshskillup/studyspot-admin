@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search } from "lucide-react";
+import { Search, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import AddStudentDialog from "@/components/AddStudentDialog";
+import EditStudentDialog from "@/components/EditStudentDialog";
 import {
   Table,
   TableBody,
@@ -24,12 +26,15 @@ interface Student {
   subscription_status: string;
   registration_date: string;
   monthly_fee: number;
+  discount_amount: number;
 }
 
 const Students = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [editStudent, setEditStudent] = useState<Student | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchStudents();
@@ -137,6 +142,7 @@ const Students = () => {
                       <TableHead>Fee</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Registered</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -155,6 +161,18 @@ const Students = () => {
                         <TableCell>
                           {new Date(student.registration_date).toLocaleDateString()}
                         </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditStudent(student);
+                              setEditDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -163,6 +181,12 @@ const Students = () => {
             )}
           </CardContent>
         </Card>
+        <EditStudentDialog
+          student={editStudent}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onStudentUpdated={fetchStudents}
+        />
       </div>
     </DashboardLayout>
   );
