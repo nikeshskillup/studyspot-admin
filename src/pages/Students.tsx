@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface Student {
   id: string;
+  student_id: string | null;
   student_name: string;
   phone: string;
   email: string | null;
@@ -135,9 +136,9 @@ const Students = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>ID</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Phone</TableHead>
-                      <TableHead>Email</TableHead>
                       <TableHead>Seat</TableHead>
                       <TableHead>Fee</TableHead>
                       <TableHead>Status</TableHead>
@@ -148,11 +149,13 @@ const Students = () => {
                   <TableBody>
                     {filteredStudents.map((student) => (
                       <TableRow key={student.id}>
+                        <TableCell className="font-mono text-sm">
+                          {student.student_id || "-"}
+                        </TableCell>
                         <TableCell className="font-medium">
                           {student.student_name}
                         </TableCell>
                         <TableCell>{student.phone}</TableCell>
-                        <TableCell>{student.email || "-"}</TableCell>
                         <TableCell>{student.seat_number || "Not assigned"}</TableCell>
                         <TableCell>₹{student.monthly_fee}</TableCell>
                         <TableCell>

@@ -24,6 +24,7 @@ interface Seat {
 
 interface Student {
   id: string;
+  student_id: string | null;
   student_name: string;
   phone: string;
   email: string | null;
@@ -116,15 +117,12 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
     const selectedSeat = [...availableSeats, currentSeat].find(s => s?.id === newSeatId);
     const newSeatNumber = selectedSeat?.seat_number || null;
 
-    // Update student profile
+    // Update student profile (only phone, email, status, and seat - not name, fee, discount)
     const { error: studentError } = await supabase
       .from("students")
       .update({
-        student_name: formData.student_name,
         phone: formData.phone,
         email: formData.email || null,
-        monthly_fee: parseFloat(formData.monthly_fee),
-        discount_amount: parseFloat(formData.discount_amount),
         subscription_status: formData.subscription_status,
         seat_number: newSeatNumber,
       })
@@ -227,6 +225,12 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
 
           <TabsContent value="profile">
             <form onSubmit={handleUpdateProfile} className="space-y-4 mt-4">
+              {student.student_id && (
+                <div className="p-3 bg-muted rounded-lg">
+                  <div className="text-sm text-muted-foreground">Student ID</div>
+                  <div className="text-lg font-bold">{student.student_id}</div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit_student_name">Student Name *</Label>
@@ -235,7 +239,10 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
                     value={formData.student_name}
                     onChange={(e) => setFormData({ ...formData, student_name: e.target.value })}
                     required
+                    disabled
+                    className="bg-muted cursor-not-allowed"
                   />
+                  <p className="text-xs text-muted-foreground">Name cannot be changed after registration</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit_phone">Phone Number *</Label>
@@ -270,7 +277,10 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
                     value={formData.monthly_fee}
                     onChange={(e) => setFormData({ ...formData, monthly_fee: e.target.value })}
                     required
+                    disabled
+                    className="bg-muted cursor-not-allowed"
                   />
+                  <p className="text-xs text-muted-foreground">Fee cannot be changed after registration</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit_discount_amount">Discount (₹)</Label>
@@ -281,7 +291,10 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
                     step="0.01"
                     value={formData.discount_amount}
                     onChange={(e) => setFormData({ ...formData, discount_amount: e.target.value })}
+                    disabled
+                    className="bg-muted cursor-not-allowed"
                   />
+                  <p className="text-xs text-muted-foreground">Discount cannot be changed after registration</p>
                 </div>
               </div>
 
