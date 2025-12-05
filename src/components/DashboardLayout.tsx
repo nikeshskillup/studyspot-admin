@@ -11,10 +11,13 @@ import {
   QrCode,
   Settings,
   LogOut,
+  UserCog,
+  ClipboardList,
 } from "lucide-react";
 import { toast } from "sonner";
 import studySpotLogo from "@/assets/studyspot-logo.png";
 import { User } from "@supabase/supabase-js";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -23,6 +26,7 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
+  const { role } = useUserRole();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -50,14 +54,23 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     navigate("/auth");
   };
 
-  const navItems = [
+  const baseNavItems = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/dashboard/students", icon: Users, label: "Students" },
     { to: "/dashboard/seats", icon: Armchair, label: "Seats" },
     { to: "/dashboard/fees", icon: CreditCard, label: "Fees" },
     { to: "/dashboard/qr", icon: QrCode, label: "QR Codes" },
+  ];
+
+  const adminOnlyNavItems = [
+    { to: "/dashboard/staff", icon: UserCog, label: "Staff" },
+    { to: "/dashboard/audit-logs", icon: ClipboardList, label: "Audit Logs" },
     { to: "/dashboard/settings", icon: Settings, label: "Settings" },
   ];
+
+  const navItems = role === "admin" 
+    ? [...baseNavItems, ...adminOnlyNavItems]
+    : baseNavItems;
 
   if (!user) {
     return null;
