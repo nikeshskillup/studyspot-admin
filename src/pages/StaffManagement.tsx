@@ -12,6 +12,7 @@ import { UserPlus, Trash2, Shield } from "lucide-react";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
+import DashboardLayout from "@/components/DashboardLayout";
 
 interface StaffMember {
   id: string;
@@ -127,6 +128,7 @@ const StaffManagement = () => {
   }
 
   return (
+    <DashboardLayout>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -236,6 +238,7 @@ const StaffManagement = () => {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 };
 

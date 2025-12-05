@@ -7,6 +7,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import DashboardLayout from "@/components/DashboardLayout";
 
 import type { Json } from "@/integrations/supabase/types";
 
@@ -61,6 +62,7 @@ const AuditLogs = () => {
   }
 
   return (
+    <DashboardLayout>
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Audit Logs</h1>
@@ -116,6 +118,7 @@ const AuditLogs = () => {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 };
 
