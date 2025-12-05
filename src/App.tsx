@@ -11,6 +11,8 @@ import Seats from "./pages/Seats";
 import Fees from "./pages/Fees";
 import Settings from "./pages/Settings";
 import QRCodes from "./pages/QRCodes";
+import StaffManagement from "./pages/StaffManagement";
+import AuditLogs from "./pages/AuditLogs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +31,8 @@ const App = () => (
           <Route path="/dashboard/seats" element={<Seats />} />
           <Route path="/dashboard/fees" element={<Fees />} />
           <Route path="/dashboard/qr" element={<QRCodes />} />
+          <Route path="/dashboard/staff" element={<StaffManagement />} />
+          <Route path="/dashboard/audit-logs" element={<AuditLogs />} />
           <Route path="/dashboard/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
