@@ -13,6 +13,7 @@ import {
   LogOut,
   UserCog,
   ClipboardList,
+  ScanLine,
 } from "lucide-react";
 import { toast } from "sonner";
 import studySpotLogo from "@/assets/studyspot-logo.png";
@@ -59,6 +60,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { to: "/dashboard/students", icon: Users, label: "Students" },
     { to: "/dashboard/seats", icon: Armchair, label: "Seats" },
     { to: "/dashboard/fees", icon: CreditCard, label: "Fees" },
+    { to: "/dashboard/attendance", icon: ScanLine, label: "Attendance" },
     { to: "/dashboard/qr", icon: QrCode, label: "QR Codes" },
   ];
 
