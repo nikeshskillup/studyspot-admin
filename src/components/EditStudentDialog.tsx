@@ -14,25 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { Tables } from "@/integrations/supabase/types";
 
-interface Seat {
-  id: string;
-  seat_number: string;
-  status: string;
-  student_id: string | null;
-}
-
-interface Student {
-  id: string;
-  student_id: string | null;
-  student_name: string;
-  phone: string;
-  email: string | null;
-  seat_number: string | null;
-  subscription_status: string;
-  monthly_fee: number;
-  discount_amount: number;
-}
+type Seat = Tables<'seats'>;
+type Student = Tables<'students'>;
 
 interface EditStudentDialogProps {
   student: Student | null;
@@ -46,34 +31,32 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
   const [availableSeats, setAvailableSeats] = useState<Seat[]>([]);
   const [currentSeat, setCurrentSeat] = useState<Seat | null>(null);
   const [formData, setFormData] = useState({
-    student_name: "",
+    name: "",
     phone: "",
-    email: "",
     monthly_fee: "",
-    discount_amount: "",
-    subscription_status: "active",
+    discount: "",
+    status: "active" as "active" | "inactive",
     seat_id: "",
   });
   const [paymentData, setPaymentData] = useState({
     amount: "",
-    payment_method: "cash",
+    method: "cash" as "cash" | "upi" | "online" | "other",
     notes: "",
   });
 
   useEffect(() => {
     if (open && student) {
       setFormData({
-        student_name: student.student_name,
+        name: student.name,
         phone: student.phone,
-        email: student.email || "",
         monthly_fee: student.monthly_fee?.toString() || "0",
-        discount_amount: student.discount_amount?.toString() || "0",
-        subscription_status: student.subscription_status,
+        discount: student.discount?.toString() || "0",
+        status: student.status,
         seat_id: "",
       });
       setPaymentData({
-        amount: ((student.monthly_fee || 0) - (student.discount_amount || 0)).toString(),
-        payment_method: "cash",
+        amount: ((student.monthly_fee || 0) - (student.discount || 0)).toString(),
+        method: "cash",
         notes: "",
       });
       fetchSeats();
@@ -81,26 +64,22 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
   }, [open, student]);
 
   const fetchSeats = async () => {
-    // Fetch available seats
-    const { data: available, error: availableError } = await supabase
+    const { data: available } = await supabase
       .from("seats")
       .select("*")
-      .eq("status", "available")
+      .is("student_id", null)
       .order("seat_number", { ascending: true });
 
-    if (!availableError && available) {
-      setAvailableSeats(available);
-    }
+    if (available) setAvailableSeats(available);
 
-    // Fetch current seat if student has one
     if (student?.seat_number) {
-      const { data: current, error: currentError } = await supabase
+      const { data: current } = await supabase
         .from("seats")
         .select("*")
         .eq("seat_number", student.seat_number)
         .maybeSingle();
 
-      if (!currentError && current) {
+      if (current) {
         setCurrentSeat(current);
         setFormData(prev => ({ ...prev, seat_id: current.id }));
       }
@@ -117,13 +96,11 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
     const selectedSeat = [...availableSeats, currentSeat].find(s => s?.id === newSeatId);
     const newSeatNumber = selectedSeat?.seat_number || null;
 
-    // Update student profile (only phone, email, status, and seat - not name, fee, discount)
     const { error: studentError } = await supabase
       .from("students")
       .update({
         phone: formData.phone,
-        email: formData.email || null,
-        subscription_status: formData.subscription_status,
+        status: formData.status,
         seat_number: newSeatNumber,
       })
       .eq("id", student.id);
@@ -134,30 +111,20 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
       return;
     }
 
-    // Handle seat changes
     if (oldSeatNumber !== newSeatNumber) {
-      // Free old seat if exists
       if (oldSeatNumber) {
         await supabase
           .from("seats")
-          .update({ status: "available", student_id: null })
+          .update({ student_id: null })
           .eq("seat_number", oldSeatNumber);
       }
 
-      // Assign new seat if selected
       if (newSeatId && newSeatNumber) {
         await supabase
           .from("seats")
-          .update({ status: "occupied", student_id: student.id })
+          .update({ student_id: student.id })
           .eq("id", newSeatId);
       }
-
-      // Record seat history
-      await supabase.from("seat_history").insert({
-        student_id: student.id,
-        old_seat: oldSeatNumber,
-        new_seat: newSeatNumber,
-      });
     }
 
     toast.success("Student profile updated successfully!");
@@ -171,16 +138,11 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
     if (!student) return;
     setLoading(true);
 
-    const nextDueDate = new Date();
-    nextDueDate.setMonth(nextDueDate.getMonth() + 1);
-
     const { error } = await supabase.from("payments").insert({
       student_id: student.id,
       amount: parseFloat(paymentData.amount),
-      payment_method: paymentData.payment_method,
+      method: paymentData.method,
       notes: paymentData.notes || null,
-      payment_date: new Date().toISOString(),
-      next_due_date: nextDueDate.toISOString(),
     });
 
     if (error) {
@@ -189,16 +151,15 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
       return;
     }
 
-    // Update student fee due date
     await supabase
       .from("students")
-      .update({ fee_due_date: nextDueDate.toISOString() })
+      .update({ fee_status: "paid" })
       .eq("id", student.id);
 
     toast.success("Payment recorded successfully!");
     setPaymentData({
-      amount: ((student.monthly_fee || 0) - (student.discount_amount || 0)).toString(),
-      payment_method: "cash",
+      amount: ((student.monthly_fee || 0) - (student.discount || 0)).toString(),
+      method: "cash",
       notes: "",
     });
     onStudentUpdated();
@@ -211,9 +172,9 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Edit Student: {student.student_name}</DialogTitle>
+          <DialogTitle>Edit Student: {student.name}</DialogTitle>
           <DialogDescription>
-            Update student profile, seat assignment, or record fee payment.
+            Update profile, seat assignment, or record payment.
           </DialogDescription>
         </DialogHeader>
 
@@ -225,24 +186,20 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
 
           <TabsContent value="profile">
             <form onSubmit={handleUpdateProfile} className="space-y-4 mt-4">
-              {student.student_id && (
-                <div className="p-3 bg-muted rounded-lg">
-                  <div className="text-sm text-muted-foreground">Student ID</div>
-                  <div className="text-lg font-bold">{student.student_id}</div>
-                </div>
-              )}
+              <div className="p-3 bg-muted rounded-lg">
+                <div className="text-sm text-muted-foreground">Student ID</div>
+                <div className="text-lg font-bold">{student.ss_id}</div>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit_student_name">Student Name *</Label>
+                  <Label htmlFor="edit_name">Student Name</Label>
                   <Input
-                    id="edit_student_name"
-                    value={formData.student_name}
-                    onChange={(e) => setFormData({ ...formData, student_name: e.target.value })}
-                    required
+                    id="edit_name"
+                    value={formData.name}
                     disabled
                     className="bg-muted cursor-not-allowed"
                   />
-                  <p className="text-xs text-muted-foreground">Name cannot be changed after registration</p>
+                  <p className="text-xs text-muted-foreground">Name cannot be changed</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit_phone">Phone Number *</Label>
@@ -256,54 +213,12 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="edit_email">Email</Label>
-                <Input
-                  id="edit_email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit_monthly_fee">Monthly Fee (₹) *</Label>
-                  <Input
-                    id="edit_monthly_fee"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.monthly_fee}
-                    onChange={(e) => setFormData({ ...formData, monthly_fee: e.target.value })}
-                    required
-                    disabled
-                    className="bg-muted cursor-not-allowed"
-                  />
-                  <p className="text-xs text-muted-foreground">Fee cannot be changed after registration</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit_discount_amount">Discount (₹)</Label>
-                  <Input
-                    id="edit_discount_amount"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.discount_amount}
-                    onChange={(e) => setFormData({ ...formData, discount_amount: e.target.value })}
-                    disabled
-                    className="bg-muted cursor-not-allowed"
-                  />
-                  <p className="text-xs text-muted-foreground">Discount cannot be changed after registration</p>
-                </div>
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit_status">Status</Label>
                   <Select
-                    value={formData.subscription_status}
-                    onValueChange={(value) => setFormData({ ...formData, subscription_status: value })}
+                    value={formData.status}
+                    onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -311,7 +226,6 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
                     <SelectContent>
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="expired">Expired</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -357,11 +271,11 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
               <div className="p-4 bg-muted rounded-lg">
                 <div className="text-sm text-muted-foreground">Monthly Fee</div>
                 <div className="text-xl font-bold">₹{student.monthly_fee || 0}</div>
-                {(student.discount_amount || 0) > 0 && (
-                  <div className="text-sm text-green-600">- ₹{student.discount_amount} discount</div>
+                {(student.discount || 0) > 0 && (
+                  <div className="text-sm text-green-600">- ₹{student.discount} discount</div>
                 )}
                 <div className="text-lg font-semibold mt-2">
-                  Net: ₹{(student.monthly_fee || 0) - (student.discount_amount || 0)}
+                  Net: ₹{(student.monthly_fee || 0) - (student.discount || 0)}
                 </div>
               </div>
 
@@ -381,8 +295,8 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
               <div className="space-y-2">
                 <Label htmlFor="payment_method">Payment Method</Label>
                 <Select
-                  value={paymentData.payment_method}
-                  onValueChange={(value) => setPaymentData({ ...paymentData, payment_method: value })}
+                  value={paymentData.method}
+                  onValueChange={(value: "cash" | "upi" | "online" | "other") => setPaymentData({ ...paymentData, method: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -390,9 +304,8 @@ const EditStudentDialog = ({ student, open, onOpenChange, onStudentUpdated }: Ed
                   <SelectContent>
                     <SelectItem value="cash">Cash</SelectItem>
                     <SelectItem value="upi">UPI</SelectItem>
-                    <SelectItem value="online">Online Transfer</SelectItem>
-                    <SelectItem value="card">Card</SelectItem>
-                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="online">Online</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

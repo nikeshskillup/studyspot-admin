@@ -14,12 +14,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { Tables } from "@/integrations/supabase/types";
+import { useGenerateSsId } from "@/hooks/useStudents";
 
-interface Seat {
-  id: string;
-  seat_number: string;
-  status: string;
-}
+type Seat = Tables<'seats'>;
 
 interface AddStudentDialogProps {
   onStudentAdded: () => void;
@@ -29,12 +27,12 @@ const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [availableSeats, setAvailableSeats] = useState<Seat[]>([]);
+  const { data: nextSsId } = useGenerateSsId();
   const [formData, setFormData] = useState({
-    student_name: "",
+    name: "",
     phone: "",
-    email: "",
     monthly_fee: "",
-    discount_amount: "0",
+    discount: "0",
     seat_id: "",
   });
 
@@ -44,35 +42,11 @@ const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
     }
   }, [open]);
 
-  useEffect(() => {
-    // Subscribe to realtime updates for seats
-    const channel = supabase
-      .channel('available-seats-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'seats'
-        },
-        () => {
-          if (open) {
-            fetchAvailableSeats();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [open]);
-
   const fetchAvailableSeats = async () => {
     const { data, error } = await supabase
       .from("seats")
       .select("*")
-      .eq("status", "available")
+      .is("student_id", null)
       .order("seat_number", { ascending: true });
 
     if (!error && data) {
@@ -85,16 +59,18 @@ const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
     setLoading(true);
 
     const selectedSeat = availableSeats.find(s => s.id === formData.seat_id);
+    const ssId = nextSsId || `SS${Date.now()}`;
     
     const { data: studentData, error: studentError } = await supabase
       .from("students")
       .insert({
-        student_name: formData.student_name,
+        ss_id: ssId,
+        name: formData.name,
         phone: formData.phone,
-        email: formData.email || null,
         monthly_fee: parseFloat(formData.monthly_fee),
-        discount_amount: parseFloat(formData.discount_amount),
-        subscription_status: "active",
+        discount: parseFloat(formData.discount),
+        status: "active" as const,
+        fee_status: "pending" as const,
         seat_number: selectedSeat?.seat_number || null,
       })
       .select()
@@ -107,26 +83,18 @@ const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
     }
 
     if (formData.seat_id && studentData) {
-      const { error: seatError } = await supabase
+      await supabase
         .from("seats")
-        .update({
-          status: "occupied",
-          student_id: studentData.id,
-        })
+        .update({ student_id: studentData.id })
         .eq("id", formData.seat_id);
-
-      if (seatError) {
-        toast.error("Student added but seat assignment failed");
-      }
     }
 
     toast.success("Student added successfully!");
     setFormData({
-      student_name: "",
+      name: "",
       phone: "",
-      email: "",
       monthly_fee: "",
-      discount_amount: "0",
+      discount: "0",
       seat_id: "",
     });
     setOpen(false);
@@ -146,19 +114,17 @@ const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
         <DialogHeader>
           <DialogTitle>Add New Student</DialogTitle>
           <DialogDescription>
-            Enter the student details to register them in the system.
+            Enter the student details. Student ID: {nextSsId || "Loading..."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="student_name">Student Name *</Label>
+            <Label htmlFor="name">Student Name *</Label>
             <Input
-              id="student_name"
+              id="name"
               placeholder="Enter student name"
-              value={formData.student_name}
-              onChange={(e) =>
-                setFormData({ ...formData, student_name: e.target.value })
-              }
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
             />
           </div>
@@ -169,22 +135,8 @@ const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
               type="tel"
               placeholder="Enter phone number"
               value={formData.phone}
-              onChange={(e) =>
-                setFormData({ ...formData, phone: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email (Optional)</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter email address"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -197,24 +149,20 @@ const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
                 step="0.01"
                 placeholder="1000"
                 value={formData.monthly_fee}
-                onChange={(e) =>
-                  setFormData({ ...formData, monthly_fee: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, monthly_fee: e.target.value })}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="discount_amount">Discount (₹)</Label>
+              <Label htmlFor="discount">Discount (₹)</Label>
               <Input
-                id="discount_amount"
+                id="discount"
                 type="number"
                 min="0"
                 step="0.01"
                 placeholder="0"
-                value={formData.discount_amount}
-                onChange={(e) =>
-                  setFormData({ ...formData, discount_amount: e.target.value })
-                }
+                value={formData.discount}
+                onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
               />
             </div>
           </div>
@@ -222,9 +170,7 @@ const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
             <Label htmlFor="seat">Seat Assignment (Optional)</Label>
             <Select
               value={formData.seat_id}
-              onValueChange={(value) =>
-                setFormData({ ...formData, seat_id: value })
-              }
+              onValueChange={(value) => setFormData({ ...formData, seat_id: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a seat" />
@@ -239,12 +185,7 @@ const AddStudentDialog = ({ onStudentAdded }: AddStudentDialogProps) => {
             </Select>
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={loading}
-            >
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
