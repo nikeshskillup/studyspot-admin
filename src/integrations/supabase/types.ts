@@ -16,25 +16,31 @@ export type Database = {
     Tables: {
       attendance: {
         Row: {
-          check_in: string
-          check_out: string | null
           created_at: string
           id: string
+          recorded_by: string | null
+          seat_number: number
           student_id: string
+          timestamp: string
+          type: Database["public"]["Enums"]["attendance_type"]
         }
         Insert: {
-          check_in?: string
-          check_out?: string | null
           created_at?: string
           id?: string
+          recorded_by?: string | null
+          seat_number: number
           student_id: string
+          timestamp?: string
+          type: Database["public"]["Enums"]["attendance_type"]
         }
         Update: {
-          check_in?: string
-          check_out?: string | null
           created_at?: string
           id?: string
+          recorded_by?: string | null
+          seat_number?: number
           student_id?: string
+          timestamp?: string
+          type?: Database["public"]["Enums"]["attendance_type"]
         }
         Relationships: [
           {
@@ -49,69 +55,60 @@ export type Database = {
       audit_logs: {
         Row: {
           action: string
-          created_at: string | null
           details: Json | null
           id: string
-          record_id: string | null
-          table_name: string | null
+          timestamp: string
           user_email: string | null
           user_id: string | null
-          user_role: string | null
         }
         Insert: {
           action: string
-          created_at?: string | null
           details?: Json | null
           id?: string
-          record_id?: string | null
-          table_name?: string | null
+          timestamp?: string
           user_email?: string | null
           user_id?: string | null
-          user_role?: string | null
         }
         Update: {
           action?: string
-          created_at?: string | null
           details?: Json | null
           id?: string
-          record_id?: string | null
-          table_name?: string | null
+          timestamp?: string
           user_email?: string | null
           user_id?: string | null
-          user_role?: string | null
         }
         Relationships: []
       }
       payments: {
         Row: {
           amount: number
-          created_at: string | null
+          created_at: string
           id: string
-          next_due_date: string | null
+          method: Database["public"]["Enums"]["payment_method"]
           notes: string | null
-          payment_date: string | null
-          payment_method: string | null
-          student_id: string | null
+          payment_date: string
+          recorded_by: string | null
+          student_id: string
         }
         Insert: {
           amount: number
-          created_at?: string | null
+          created_at?: string
           id?: string
-          next_due_date?: string | null
+          method?: Database["public"]["Enums"]["payment_method"]
           notes?: string | null
-          payment_date?: string | null
-          payment_method?: string | null
-          student_id?: string | null
+          payment_date?: string
+          recorded_by?: string | null
+          student_id: string
         }
         Update: {
           amount?: number
-          created_at?: string | null
+          created_at?: string
           id?: string
-          next_due_date?: string | null
+          method?: Database["public"]["Enums"]["payment_method"]
           notes?: string | null
-          payment_date?: string | null
-          payment_method?: string | null
-          student_id?: string | null
+          payment_date?: string
+          recorded_by?: string | null
+          student_id?: string
         }
         Relationships: [
           {
@@ -123,65 +120,48 @@ export type Database = {
           },
         ]
       }
-      seat_history: {
+      profiles: {
         Row: {
-          changed_at: string | null
-          changed_by: string | null
+          created_at: string
+          email: string
           id: string
-          new_seat: string | null
-          old_seat: string | null
-          student_id: string | null
+          updated_at: string
         }
         Insert: {
-          changed_at?: string | null
-          changed_by?: string | null
-          id?: string
-          new_seat?: string | null
-          old_seat?: string | null
-          student_id?: string | null
+          created_at?: string
+          email: string
+          id: string
+          updated_at?: string
         }
         Update: {
-          changed_at?: string | null
-          changed_by?: string | null
+          created_at?: string
+          email?: string
           id?: string
-          new_seat?: string | null
-          old_seat?: string | null
-          student_id?: string | null
+          updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "seat_history_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       seats: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
-          seat_number: string
-          status: string | null
+          seat_number: number
           student_id: string | null
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
-          seat_number: string
-          status?: string | null
+          seat_number: number
           student_id?: string | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
-          seat_number?: string
-          status?: string | null
+          seat_number?: number
           student_id?: string | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -195,79 +175,79 @@ export type Database = {
       }
       settings: {
         Row: {
-          created_at: string | null
-          default_monthly_fee: number | null
+          brand_name: string
+          default_monthly_fee: number
           id: string
-          total_seats: number | null
-          updated_at: string | null
+          logo_url: string | null
+          primary_color: string | null
+          total_seats: number
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
-          default_monthly_fee?: number | null
+          brand_name?: string
+          default_monthly_fee?: number
           id?: string
-          total_seats?: number | null
-          updated_at?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          total_seats?: number
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
-          default_monthly_fee?: number | null
+          brand_name?: string
+          default_monthly_fee?: number
           id?: string
-          total_seats?: number | null
-          updated_at?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          total_seats?: number
+          updated_at?: string
         }
         Relationships: []
       }
       students: {
         Row: {
-          created_at: string | null
-          discount_amount: number | null
-          email: string | null
-          fee_due_date: string | null
+          created_at: string
+          date_joined: string
+          discount: number
+          fee_status: Database["public"]["Enums"]["fee_status"]
           id: string
-          monthly_fee: number | null
+          monthly_fee: number
+          name: string
           phone: string
-          photo_url: string | null
-          qr_url: string | null
-          registration_date: string | null
-          seat_number: string | null
-          student_id: string | null
-          student_name: string
-          subscription_status: string | null
-          updated_at: string | null
+          photo: string | null
+          seat_number: number | null
+          ss_id: string
+          status: Database["public"]["Enums"]["student_status"]
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
-          discount_amount?: number | null
-          email?: string | null
-          fee_due_date?: string | null
+          created_at?: string
+          date_joined?: string
+          discount?: number
+          fee_status?: Database["public"]["Enums"]["fee_status"]
           id?: string
-          monthly_fee?: number | null
+          monthly_fee?: number
+          name: string
           phone: string
-          photo_url?: string | null
-          qr_url?: string | null
-          registration_date?: string | null
-          seat_number?: string | null
-          student_id?: string | null
-          student_name: string
-          subscription_status?: string | null
-          updated_at?: string | null
+          photo?: string | null
+          seat_number?: number | null
+          ss_id: string
+          status?: Database["public"]["Enums"]["student_status"]
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
-          discount_amount?: number | null
-          email?: string | null
-          fee_due_date?: string | null
+          created_at?: string
+          date_joined?: string
+          discount?: number
+          fee_status?: Database["public"]["Enums"]["fee_status"]
           id?: string
-          monthly_fee?: number | null
+          monthly_fee?: number
+          name?: string
           phone?: string
-          photo_url?: string | null
-          qr_url?: string | null
-          registration_date?: string | null
-          seat_number?: string | null
-          student_id?: string | null
-          student_name?: string
-          subscription_status?: string | null
-          updated_at?: string | null
+          photo?: string | null
+          seat_number?: number | null
+          ss_id?: string
+          status?: Database["public"]["Enums"]["student_status"]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -298,6 +278,7 @@ export type Database = {
     }
     Functions: {
       admin_exists: { Args: never; Returns: boolean }
+      generate_ss_id: { Args: never; Returns: string }
       generate_student_id: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -307,9 +288,18 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_authenticated_staff: { Args: { _user_id: string }; Returns: boolean }
+      log_audit_event: {
+        Args: { _action: string; _details?: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "staff"
+      attendance_type: "check-in" | "check-out"
+      fee_status: "paid" | "pending" | "overdue"
+      payment_method: "cash" | "upi" | "online" | "other"
+      student_status: "active" | "inactive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -438,6 +428,10 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff"],
+      attendance_type: ["check-in", "check-out"],
+      fee_status: ["paid", "pending", "overdue"],
+      payment_method: ["cash", "upi", "online", "other"],
+      student_status: ["active", "inactive"],
     },
   },
 } as const

@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, CreditCard, Armchair } from "lucide-react";
+import { UserPlus, CreditCard, ScanLine } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface Activity {
   id: string;
-  type: "student" | "payment" | "seat";
+  type: "student" | "payment" | "attendance";
   description: string;
   timestamp: string;
 }
@@ -18,21 +18,21 @@ const RecentActivity = () => {
 
   useEffect(() => {
     const fetchActivities = async () => {
-      const [studentsRes, paymentsRes, seatHistoryRes] = await Promise.all([
+      const [studentsRes, paymentsRes, attendanceRes] = await Promise.all([
         supabase
           .from("students")
-          .select("id, student_name, created_at")
+          .select("id, name, created_at")
           .order("created_at", { ascending: false })
           .limit(5),
         supabase
           .from("payments")
-          .select("id, amount, payment_date, student_id")
+          .select("id, amount, payment_date")
           .order("payment_date", { ascending: false })
           .limit(5),
         supabase
-          .from("seat_history")
-          .select("id, old_seat, new_seat, changed_at")
-          .order("changed_at", { ascending: false })
+          .from("attendance")
+          .select("id, type, timestamp, students(name)")
+          .order("timestamp", { ascending: false })
           .limit(5),
       ]);
 
@@ -42,7 +42,7 @@ const RecentActivity = () => {
         allActivities.push({
           id: `student-${s.id}`,
           type: "student",
-          description: `New student registered: ${s.student_name}`,
+          description: `New student registered: ${s.name}`,
           timestamp: s.created_at,
         });
       });
@@ -56,16 +56,15 @@ const RecentActivity = () => {
         });
       });
 
-      seatHistoryRes.data?.forEach((sh) => {
+      attendanceRes.data?.forEach((a: { id: string; type: string; timestamp: string; students: { name: string } | null }) => {
         allActivities.push({
-          id: `seat-${sh.id}`,
-          type: "seat",
-          description: `Seat changed: ${sh.old_seat || "None"} → ${sh.new_seat}`,
-          timestamp: sh.changed_at,
+          id: `attendance-${a.id}`,
+          type: "attendance",
+          description: `${a.students?.name || "Student"} ${a.type === "check-in" ? "checked in" : "checked out"}`,
+          timestamp: a.timestamp,
         });
       });
 
-      // Sort by timestamp and take top 10
       allActivities.sort(
         (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
@@ -83,8 +82,8 @@ const RecentActivity = () => {
         return <UserPlus className="h-4 w-4" />;
       case "payment":
         return <CreditCard className="h-4 w-4" />;
-      case "seat":
-        return <Armchair className="h-4 w-4" />;
+      case "attendance":
+        return <ScanLine className="h-4 w-4" />;
     }
   };
 
@@ -94,7 +93,7 @@ const RecentActivity = () => {
         return "default";
       case "payment":
         return "secondary";
-      case "seat":
+      case "attendance":
         return "outline";
     }
   };

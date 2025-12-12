@@ -15,13 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { Tables } from "@/integrations/supabase/types";
 
-interface Student {
-  id: string;
-  student_name: string;
-  monthly_fee: number;
-  discount_amount: number;
-}
+type Student = Tables<'students'>;
 
 interface RecordPaymentDialogProps {
   onPaymentAdded: () => void;
@@ -34,7 +30,7 @@ const RecordPaymentDialog = ({ onPaymentAdded }: RecordPaymentDialogProps) => {
   const [formData, setFormData] = useState({
     student_id: "",
     amount: "",
-    payment_method: "cash",
+    method: "cash" as "cash" | "upi" | "online" | "other",
     notes: "",
   });
 
@@ -47,9 +43,9 @@ const RecordPaymentDialog = ({ onPaymentAdded }: RecordPaymentDialogProps) => {
   const fetchStudents = async () => {
     const { data, error } = await supabase
       .from("students")
-      .select("id, student_name, monthly_fee, discount_amount")
-      .eq("subscription_status", "active")
-      .order("student_name", { ascending: true });
+      .select("*")
+      .eq("status", "active")
+      .order("name", { ascending: true });
 
     if (!error && data) {
       setStudents(data);
@@ -59,7 +55,7 @@ const RecordPaymentDialog = ({ onPaymentAdded }: RecordPaymentDialogProps) => {
   const handleStudentChange = (studentId: string) => {
     const student = students.find((s) => s.id === studentId);
     if (student) {
-      const finalAmount = student.monthly_fee - (student.discount_amount || 0);
+      const finalAmount = (student.monthly_fee || 0) - (student.discount || 0);
       setFormData({
         ...formData,
         student_id: studentId,
@@ -75,19 +71,23 @@ const RecordPaymentDialog = ({ onPaymentAdded }: RecordPaymentDialogProps) => {
     const { error } = await supabase.from("payments").insert({
       student_id: formData.student_id,
       amount: parseFloat(formData.amount),
-      payment_method: formData.payment_method,
+      method: formData.method,
       notes: formData.notes || null,
-      payment_date: new Date().toISOString(),
     });
 
     if (error) {
       toast.error("Failed to record payment: " + error.message);
     } else {
+      await supabase
+        .from("students")
+        .update({ fee_status: "paid" })
+        .eq("id", formData.student_id);
+
       toast.success("Payment recorded successfully!");
       setFormData({
         student_id: "",
         amount: "",
-        payment_method: "cash",
+        method: "cash",
         notes: "",
       });
       setOpen(false);
@@ -125,8 +125,7 @@ const RecordPaymentDialog = ({ onPaymentAdded }: RecordPaymentDialogProps) => {
               <SelectContent>
                 {students.map((student) => (
                   <SelectItem key={student.id} value={student.id}>
-                    {student.student_name} - ₹
-                    {student.monthly_fee - (student.discount_amount || 0)}
+                    {student.name} ({student.ss_id}) - ₹{(student.monthly_fee || 0) - (student.discount || 0)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -141,29 +140,24 @@ const RecordPaymentDialog = ({ onPaymentAdded }: RecordPaymentDialogProps) => {
               step="0.01"
               placeholder="1000"
               value={formData.amount}
-              onChange={(e) =>
-                setFormData({ ...formData, amount: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="payment_method">Payment Method *</Label>
+            <Label htmlFor="method">Payment Method *</Label>
             <Select
-              value={formData.payment_method}
-              onValueChange={(value) =>
-                setFormData({ ...formData, payment_method: value })
-              }
+              value={formData.method}
+              onValueChange={(value: "cash" | "upi" | "online" | "other") => setFormData({ ...formData, method: value })}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="online">Online</SelectItem>
                 <SelectItem value="upi">UPI</SelectItem>
-                <SelectItem value="card">Card</SelectItem>
-                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                <SelectItem value="online">Online</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -173,19 +167,12 @@ const RecordPaymentDialog = ({ onPaymentAdded }: RecordPaymentDialogProps) => {
               id="notes"
               placeholder="Add any additional notes..."
               value={formData.notes}
-              onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={loading}
-            >
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
